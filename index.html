@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crystal Jepsen — Insights Discovery Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --red: #E84855;
+  --red-light: #FFF0F1;
+  --red-glow: rgba(232,72,85,0.15);
+  --blue: #2D7DD2;
+  --blue-light: #EDF4FC;
+  --blue-glow: rgba(45,125,210,0.15);
+  --green: #45B69C;
+  --green-light: #EDFAF6;
+  --green-glow: rgba(69,182,156,0.15);
+  --yellow: #F0A202;
+  --yellow-light: #FFF8E7;
+  --yellow-glow: rgba(240,162,2,0.15);
+  --bg: #0D0D0D;
+  --bg-card: #1A1A1A;
+  --bg-card-hover: #222;
+  --text: #F5F5F0;
+  --text-muted: #999;
+  --text-dim: #666;
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .nav-btn, .tag {
+  font-family: 'Unbounded', sans-serif;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── LAYOUT ── */
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+@media (min-width: 768px) {
+  .container { max-width: 720px; }
+}
+
+@media (min-width: 1024px) {
+  .container { max-width: 900px; }
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 60px 20px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+  top: -200px;
+  right: -200px;
+  animation: pulse 8s ease-in-out infinite;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--yellow-glow) 0%, transparent 70%);
+  bottom: -150px;
+  left: -200px;
+  animation: pulse 10s ease-in-out infinite reverse;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: var(--bg-card);
+  border: 1px solid #333;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--green);
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.hero h1 {
+  font-size: clamp(2.2rem, 8vw, 4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero h1 .accent {
+  background: linear-gradient(135deg, var(--green), var(--yellow));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  max-width: 360px;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── COLOUR WHEEL MINI ── */
+.colour-wheel-mini {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.cw-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+  position: relative;
+  transition: transform 0.3s;
+}
+
+.cw-dot:hover { transform: scale(1.15) rotate(-3deg); }
+
+.cw-dot.green { background: var(--green); }
+.cw-dot.red { background: var(--red); }
+.cw-dot.yellow { background: var(--yellow); }
+.cw-dot.blue { background: var(--blue); }
+
+.cw-dot .pct {
+  font-size: 0.6rem;
+  opacity: 0.85;
+}
+
+/* ── SCROLL CTA ── */
+.scroll-cta {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  animation: bob 2s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+.scroll-cta svg { width: 20px; height: 20px; stroke: var(--text-dim); }
+
+/* ── NAV ── */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,13,13,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid #222;
+  padding: 12px 0;
+}
+
+.nav-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 20px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.nav-scroll::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid #333;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.nav-btn:hover, .nav-btn.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+/* ── SECTIONS ── */
+.section {
+  padding: 80px 0;
+  border-bottom: 1px solid #1a1a1a;
+}
+
+.section-label {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 12px;
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.section-label.green { color: var(--green); background: var(--green-glow); }
+.section-label.red { color: var(--red); background: var(--red-glow); }
+.section-label.yellow { color: var(--yellow); background: var(--yellow-glow); }
+.section-label.blue { color: var(--blue); background: var(--blue-glow); }
+
+.section h2 {
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+
+.section-intro {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 32px;
+  max-width: 560px;
+  line-height: 1.7;
+}
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  border: 1px solid #222;
+  transition: all 0.3s;
+}
+
+.card:hover {
+  border-color: #333;
+  transform: translateY(-2px);
+}
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+}
+
+.card h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.card p {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+/* ── COLOUR ENERGY BARS ── */
+.energy-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.energy-bar-group label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.energy-bar-track {
+  height: 32px;
+  background: #222;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.energy-bar-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.energy-bar-fill.green { background: linear-gradient(90deg, var(--green), #5dd4b6); }
+.energy-bar-fill.red { background: linear-gradient(90deg, var(--red), #f27980); }
+.energy-bar-fill.yellow { background: linear-gradient(90deg, var(--yellow), #ffc94d); }
+.energy-bar-fill.blue { background: linear-gradient(90deg, var(--blue), #5da0e8); }
+
+/* ── COMPARISON ── */
+.comparison-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .comparison-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.comparison-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  border: 1px solid #222;
+}
+
+.comparison-card h3 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.comparison-card .subtitle {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+
+/* ── TAG LIST ── */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+
+.tag.green { color: var(--green); border-color: rgba(69,182,156,0.3); background: var(--green-glow); }
+.tag.red { color: var(--red); border-color: rgba(232,72,85,0.3); background: var(--red-glow); }
+.tag.yellow { color: var(--yellow); border-color: rgba(240,162,2,0.3); background: var(--yellow-glow); }
+.tag.blue { color: var(--blue); border-color: rgba(45,125,210,0.3); background: var(--blue-glow); }
+
+/* ── STAT BLOCKS ── */
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+  .stat-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stat-block {
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  padding: 20px 16px;
+  text-align: center;
+  border: 1px solid #222;
+}
+
+.stat-block .stat-value {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.stat-block .stat-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ── TRIGGER CARDS ── */
+.trigger-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 12px;
+  border-left: 4px solid;
+  border-top: 1px solid #222;
+  border-right: 1px solid #222;
+  border-bottom: 1px solid #222;
+}
+
+.trigger-card.warning { border-left-color: var(--red); }
+.trigger-card.caution { border-left-color: var(--yellow); }
+.trigger-card.info { border-left-color: var(--blue); }
+.trigger-card.calm { border-left-color: var(--green); }
+
+.trigger-card h4 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.trigger-card p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── DELTA INDICATOR ── */
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Unbounded', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.delta.up { color: var(--green); background: var(--green-glow); }
+.delta.down { color: var(--red); background: var(--red-glow); }
+.delta.neutral { color: var(--yellow); background: var(--yellow-glow); }
+
+/* ── BLIND SPOT CARD ── */
+.blind-spot {
+  background: linear-gradient(135deg, var(--bg-card), #1f1a2e);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  margin-bottom: 16px;
+  border: 1px solid #2a2540;
+  position: relative;
+  overflow: hidden;
+}
+
+.blind-spot::before {
+  content: '👁';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 1.5rem;
+  opacity: 0.15;
+}
+
+.blind-spot h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #c4b5fd;
+}
+
+.blind-spot p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+/* ── CREATIVE TYPE HIGHLIGHT ── */
+.creative-highlight {
+  background: linear-gradient(135deg, rgba(69,182,156,0.08), rgba(232,72,85,0.08));
+  border: 1px solid rgba(69,182,156,0.2);
+  border-radius: var(--radius);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.creative-highlight .big-number {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--green), var(--red));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.creative-highlight p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── CHEAT SHEET ── */
+.cheat-sheet {
+  display: grid;
+  gap: 12px;
+}
+
+.cheat-do, .cheat-dont {
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.cheat-do {
+  background: rgba(69,182,156,0.06);
+  border: 1px solid rgba(69,182,156,0.15);
+}
+
+.cheat-dont {
+  background: rgba(232,72,85,0.06);
+  border: 1px solid rgba(232,72,85,0.15);
+}
+
+.cheat-do h4 { color: var(--green); }
+.cheat-dont h4 { color: var(--red); }
+
+.cheat-do h4, .cheat-dont h4 {
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cheat-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cheat-list li {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  padding-left: 20px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.cheat-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cheat-do .cheat-list li::before { background: var(--green); }
+.cheat-dont .cheat-list li::before { background: var(--red); }
+
+/* ── RELATIONSHIP STYLES ── */
+.rel-grid {
+  display: grid;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .rel-grid { grid-template-columns: 1fr 1fr; }
+  .cheat-sheet { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── GROWTH CARD ── */
+.growth-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 12px;
+  border: 1px solid #222;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.growth-number {
+  font-family: 'Unbounded', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  width: 36px;
+}
+
+.growth-card h4 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.growth-card p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
+.footer p { margin-bottom: 4px; }
+
+/* ── FADE IN ANIMATION ── */
+.fade-in {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── GAP VISUALIZER ── */
+.gap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 0.82rem;
+}
+
+.gap-label {
+  width: 70px;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.gap-bar-container {
+  flex: 1;
+  position: relative;
+  height: 28px;
+}
+
+.gap-bar {
+  position: absolute;
+  height: 12px;
+  border-radius: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.gap-bar.conscious { opacity: 1; top: 4px; transform: none; }
+.gap-bar.less-conscious { opacity: 0.45; top: 16px; transform: none; }
+
+.gap-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.gap-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gap-legend .swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.gap-legend .swatch.full { background: var(--green); }
+.gap-legend .swatch.faded { background: var(--green); opacity: 0.4; }
+
+/* ── MANAGEMENT STYLE ── */
+.mgmt-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 10px;
+  border: 1px solid #222;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.mgmt-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.mgmt-card p {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* Flip card for creative type */
+.flip-container {
+  perspective: 1000px;
+  margin-bottom: 16px;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  min-height: 180px;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.flip-container:hover .flip-card,
+.flip-container.tapped .flip-card {
+  transform: rotateY(180deg);
+}
+
+.flip-front, .flip-back {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: var(--radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.flip-front {
+  background: var(--bg-card);
+  border: 1px solid #333;
+}
+
+.flip-back {
+  background: linear-gradient(135deg, rgba(69,182,156,0.15), rgba(232,72,85,0.15));
+  border: 1px solid rgba(69,182,156,0.3);
+  transform: rotateY(180deg);
+}
+
+.flip-front h4, .flip-back h4 {
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.flip-front p, .flip-back p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.tap-hint {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  margin-top: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ HERO ════════════ -->
+<section class="hero">
+  <div class="hero-badge"><span class="dot"></span> Insights Discovery Profile</div>
+  <h1>Crystal<br><span class="accent">Decoded.</span></h1>
+  <p class="hero-sub">Your Insights Discovery colour profile — unpacked, visualized, and made actionable. Type 129: Creative Supporting Helper.</p>
+  <div class="colour-wheel-mini">
+    <div class="cw-dot green"><span class="pct">82%</span></div>
+    <div class="cw-dot red"><span class="pct">52%</span></div>
+    <div class="cw-dot yellow"><span class="pct">47%</span></div>
+    <div class="cw-dot blue"><span class="pct">42%</span></div>
+  </div>
+  <div class="scroll-cta">
+    Explore
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+  </div>
+</section>
+
+<!-- ════════════ NAV ════════════ -->
+<nav class="section-nav">
+  <div class="nav-scroll">
+    <button class="nav-btn active" onclick="scrollToSection('energy')">Energy Mix</button>
+    <button class="nav-btn" onclick="scrollToSection('creative')">Creative Type</button>
+    <button class="nav-btn" onclick="scrollToSection('strengths')">Strengths</button>
+    <button class="nav-btn" onclick="scrollToSection('motivators')">Motivators</button>
+    <button class="nav-btn" onclick="scrollToSection('triggers')">Triggers</button>
+    <button class="nav-btn" onclick="scrollToSection('feedback')">Feedback</button>
+    <button class="nav-btn" onclick="scrollToSection('relationships')">Relationships</button>
+    <button class="nav-btn" onclick="scrollToSection('blindspots')">Blind Spots</button>
+    <button class="nav-btn" onclick="scrollToSection('conscious')">Conscious Gap</button>
+    <button class="nav-btn" onclick="scrollToSection('growth')">Growth</button>
+    <button class="nav-btn" onclick="scrollToSection('cheatsheet')">Cheat Sheet</button>
+    <button class="nav-btn" onclick="scrollToSection('management')">Management</button>
+    <button class="nav-btn" onclick="scrollToSection('worklife')">Work Life</button>
+    <button class="nav-btn" onclick="scrollToSection('personallife')">Personal Life</button>
+  </div>
+</nav>
+
+<!-- ════════════ ENERGY MIX ════════════ -->
+<section class="section" id="energy">
+  <div class="container">
+    <span class="section-label green">Your Colour DNA</span>
+    <h2>Energy Mix</h2>
+    <p class="section-intro">Everyone carries all four colour energies. Yours tell a fascinating story — you lead heavily with Earth Green, but your Fiery Red is right there as your second energy. That's a rare combination.</p>
+
+    <div class="stat-row">
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--green)">82%</div>
+        <div class="stat-label">Earth Green</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--red)">52%</div>
+        <div class="stat-label">Fiery Red</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--yellow)">47%</div>
+        <div class="stat-label">Sunshine Yellow</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-value" style="color: var(--blue)">42%</div>
+        <div class="stat-label">Cool Blue</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h3>What the colours mean</h3>
+      <div class="energy-bars" style="margin-top: 16px;">
+        <div class="energy-bar-group">
+          <label><span style="color:var(--green)">Earth Green</span> <span>Caring · Values-driven · Empathic</span></label>
+          <div class="energy-bar-track"><div class="energy-bar-fill green" style="width:82%">4.93</div></div>
+        </div>
+        <div class="energy-bar-group">
+          <label><span style="color:var(--red)">Fiery Red</span> <span>Decisive · Action · Results</span></label>
+          <div class="energy-bar-track"><div class="energy-bar-fill red" style="width:52%">3.13</div></div>
+        </div>
+        <div class="energy-bar-group">
+          <label><span style="color:var(--yellow)">Sunshine Yellow</span> <span>Creative · Social · Optimistic</span></label>
+          <div class="energy-bar-track"><div class="energy-bar-fill yellow" style="width:47%">2.80</div></div>
+        </div>
+        <div class="energy-bar-group">
+          <label><span style="color:var(--blue)">Cool Blue</span> <span>Analytical · Precise · Thoughtful</span></label>
+          <div class="energy-bar-track"><div class="energy-bar-fill blue" style="width:42%">2.53</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>The Quick Translation</h3>
+      <p>You're wired for empathy and harmony first. You read rooms, care deeply about people, and make decisions through the lens of personal values. But unlike a "pure" Green, your Red energy gives you a quiet backbone — when something matters, you can switch gears and push hard. That duality is your superpower.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ CREATIVE TYPE ════════════ -->
+<section class="section" id="creative">
+  <div class="container">
+    <span class="section-label red">Rare Position</span>
+    <h2>You're a Creative Type</h2>
+    <p class="section-intro">Only about 9% of people who take the Insights assessment land in the Creative position. You're one of them.</p>
+
+    <div class="creative-highlight">
+      <div class="big-number">~9%</div>
+      <p><strong>of the global Insights database</strong> sits in the Creative position. Your top two colour energies — Green and Red — are polar opposites on the wheel. Most people's top two are neighbours.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: linear-gradient(135deg, var(--green-glow), var(--red-glow));">🔄</div>
+      <h3>What This Actually Means</h3>
+      <p>You can genuinely channel both the nurturing supporter AND the decisive action-taker — not as a coping mechanism, but as a natural expression of who you are. You might be having a warm, collaborative conversation one minute and then firmly pivot to "okay, let's get this done" the next. This can surprise people who expect you to stay in one lane.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🌉</div>
+      <h3>You're a Natural Bridge</h3>
+      <p>On a team, you can translate between people who sit on opposite sides of the wheel. You understand both the "let's talk about how everyone feels" camp and the "let's stop talking and do something" camp — because you live in both worlds.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">⚡</div>
+      <h3>The Trade-Off</h3>
+      <p>Because you shift between opposing energies fluidly, colleagues might sometimes wonder which version of you to expect. Your stress response can also vary depending on which energy you're operating from in that moment, making it less predictable than non-Creative types.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ STRENGTHS ════════════ -->
+<section class="section" id="strengths">
+  <div class="container">
+    <span class="section-label green">Your Superpowers</span>
+    <h2>What You Bring to the Table</h2>
+    <p class="section-intro">These aren't just nice-to-haves. These are the gifts you consistently bring to every team, project, and relationship.</p>
+
+    <div class="tag-list" style="margin-bottom: 32px;">
+      <span class="tag green">Community Builder</span>
+      <span class="tag green">Reads the Room</span>
+      <span class="tag green">Empathic & Perceptive</span>
+      <span class="tag yellow">Values Differences</span>
+      <span class="tag green">Harmony Creator</span>
+      <span class="tag blue">Conscientious & Dependable</span>
+      <span class="tag green">Compassionate</span>
+      <span class="tag yellow">Happy to Serve</span>
+      <span class="tag red">Creative Problem Solver</span>
+      <span class="tag green">Sensitive to Needs</span>
+    </div>
+
+    <div class="card">
+      <h3>On a Team, You...</h3>
+      <p style="margin-bottom: 12px;">Make sure everyone feels comfortable and included. You bring lightness and fun to spaces you know well. You see others' success as a measure of your own. You're loyal to the leader and the mission. When conflict erupts, you're the one who brings people back together.</p>
+      <p>You're equally at home reflecting quietly or actively engaging — and you instinctively use relationship skills that many people never develop.</p>
+    </div>
+
+    <div class="card">
+      <h3>Your Leadership Gift</h3>
+      <p>You lead through encouragement and coaching, not through control. You seek consensus, unite opposing views, and provide quality leadership by gaining buy-in for your ideas. You evaluate others' contributions thoughtfully before acting.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ MOTIVATORS ════════════ -->
+<section class="section" id="motivators">
+  <div class="container">
+    <span class="section-label yellow">What Lights You Up</span>
+    <h2>Motivators & Energizers</h2>
+    <p class="section-intro">These are the conditions and moments that make you come alive at work and beyond.</p>
+
+    <div class="rel-grid">
+      <div class="card">
+        <div class="card-icon" style="background: var(--green-glow);">💛</div>
+        <h3>Genuine Interest in You</h3>
+        <p>When people invest in your development — not performatively, but with real care — it fuels you deeply.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--yellow-glow);">🧩</div>
+        <h3>Intuition-Based Problems</h3>
+        <p>Give you a challenge that needs gut instinct and creative insight, not just spreadsheets, and you light up.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--red-glow);">🏡</div>
+        <h3>Family Acknowledgment</h3>
+        <p>Recognition that your family's support and commitment matters to your work life goes a long way.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--blue-glow);">🤝</div>
+        <h3>Values Accepted Fully</h3>
+        <p>When your personal values and feelings are accepted without judgment — not just tolerated — that's when you thrive.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--green-glow);">🌱</div>
+        <h3>Quiet Wins, Low-Key Recognition</h3>
+        <p>You don't need a spotlight. Small, genuine gestures of appreciation and belonging matter more than public applause.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--yellow-glow);">🎯</div>
+        <h3>Being Asked Your Opinion</h3>
+        <p>Especially on support services and people matters — being consulted makes you feel seen and valued.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ TRIGGERS ════════════ -->
+<section class="section" id="triggers">
+  <div class="container">
+    <span class="section-label red">Watch Zones</span>
+    <h2>Your Triggers & Stress Signals</h2>
+    <p class="section-intro">Everyone has them. Knowing yours means you can catch them early and take care of yourself before you spiral.</p>
+
+    <div class="trigger-card warning">
+      <h4>🔴 Values Being Violated</h4>
+      <p>Being asked to do something that conflicts with your personal ethics or beliefs is deeply distressing. You won't easily comply, and the internal conflict drains you.</p>
+    </div>
+
+    <div class="trigger-card warning">
+      <h4>🔴 Unfair or Impersonal Treatment</h4>
+      <p>Whether directed at you or someone else, witnessing unfairness or coldness hits you hard. You may take on others' pain as your own.</p>
+    </div>
+
+    <div class="trigger-card caution">
+      <h4>🟡 Time Pressure & Interruptions</h4>
+      <p>You need time to assimilate information. Being rushed for instant decisions or instant accuracy creates real anxiety.</p>
+    </div>
+
+    <div class="trigger-card caution">
+      <h4>🟡 Ideas Met with Indifference</h4>
+      <p>When your contributions are ignored or dismissed, you take it personally. Criticism of your ideas can feel like criticism of who you are.</p>
+    </div>
+
+    <div class="trigger-card caution">
+      <h4>🟡 Being Forced to Conform</h4>
+      <p>Excessive structure, rigid rules, and people trying to make you fit a mould trigger your stubborn side.</p>
+    </div>
+
+    <div class="trigger-card info">
+      <h4>🔵 Isolation & Lack of Encouragement</h4>
+      <p>Without regular feedback and connection, you tend to lose confidence and may give up on things more easily.</p>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h3>What Happens When You're Stressed</h3>
+      <p style="margin-bottom: 12px;">Because you're a Creative type, your stress response depends on which colour energy you're operating from in the moment.</p>
+      <p style="margin-bottom: 12px;"><strong style="color: var(--green)">Green-mode stress:</strong> You go quiet, withdraw, become overly cautious, and may appear hurt or judgmental. You might become stubborn and resistant to change.</p>
+      <p><strong style="color: var(--red)">Red-mode stress:</strong> You can flip to being unusually demanding, rigid, and impatient — a side that surprises people who only know your gentle nature.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ FEEDBACK ════════════ -->
+<section class="section" id="feedback">
+  <div class="container">
+    <span class="section-label blue">Growth Edge</span>
+    <h2>How You Handle Feedback</h2>
+    <p class="section-intro">Your relationship with feedback and criticism is nuanced — and understanding it is one of your biggest growth opportunities.</p>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🛡️</div>
+      <h3>Your Default Response</h3>
+      <p>You have an ever-present internal critic that already judges everything you think and do. So when external criticism arrives, it lands on someone who's already being hard on themselves. You tend to take feedback personally rather than objectively, and may need processing time before you can hear the useful parts.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">💡</div>
+      <h3>What Actually Helps</h3>
+      <p>Feedback delivered calmly, privately, and with genuine care lands much better. Frame it around growth rather than failure. Avoid public comparisons to other people — that's a fast track to shutting down. Give you time to reflect before expecting a response.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--red-glow);">🎯</div>
+      <h3>The Opportunity</h3>
+      <p>Your profile suggests that reducing sensitivity to constructive criticism could unlock a lot of growth. The helpful information often sits inside feedback that initially feels uncomfortable. Your internal critic is often <em>right</em> — building confidence in your own judgment would let you trust it more.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--blue-glow);">⚖️</div>
+      <h3>Decision Making & Criticism</h3>
+      <p>You prefer gut-feel decisions over exhaustive analysis, and you're often correct. But a lack of confidence in your own judgment means you may second-guess yourself. You may not express yourself forcefully enough, leading to being misunderstood — which then feels like rejection.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ RELATIONSHIPS ════════════ -->
+<section class="section" id="relationships">
+  <div class="container">
+    <span class="section-label green">Connection Style</span>
+    <h2>How You Show Up in Relationships</h2>
+    <p class="section-intro">Whether it's colleagues, friends, or family — here's how your colour energy shapes the way you connect.</p>
+
+    <div class="rel-grid">
+      <div class="card">
+        <div class="card-icon" style="background: var(--green-glow);">🌿</div>
+        <h3>Unconditional Positive Regard</h3>
+        <p>This isn't just a trait — it's a core value. You approach people with genuine warmth and acceptance. Most see you as kind and sympathetic.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--yellow-glow);">🐚</div>
+        <h3>Slow to Reveal</h3>
+        <p>You have a lot of personal warmth, but you don't show it until you really know someone. You're not always keen to express how you feel, keeping your deepest feelings private.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--red-glow);">🎭</div>
+        <h3>The Hidden Fist</h3>
+        <p>You appear calm and easygoing, but there's a firmness underneath. When your values or commitments are threatened, you can become surprisingly rigid and demanding.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background: var(--blue-glow);">🔍</div>
+        <h3>Seeking Perfection</h3>
+        <p>You look for perfection in relationships, which can create a vague sense of dissatisfaction with how things actually are. You may suppress your own needs to please others.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+      <h3>Patterns to Watch</h3>
+      <p style="margin-bottom: 12px;">You may become possessive of people you've invested emotional energy in. You can have difficulty saying "no" when relationships feel threatened. You might spend too long sympathizing with someone who made a mistake rather than addressing the issue.</p>
+      <p>You use approval and praise (not argument or intimidation) to win cooperation — which works beautifully, until it doesn't. When you <em>have</em> to deliver an unpleasant truth, you soften it so much the message may get lost.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ BLIND SPOTS ════════════ -->
+<section class="section" id="blindspots">
+  <div class="container">
+    <span class="section-label yellow">Hidden Patterns</span>
+    <h2>Blind Spots</h2>
+    <p class="section-intro">These are the things you might not see about yourself — but others probably do. The profile suggests checking these with trusted people.</p>
+
+    <div class="blind-spot">
+      <h4>Avoiding Confrontation</h4>
+      <p>Your preference to dodge conflict can prevent issues from reaching resolution. Things that need to be addressed may linger far too long.</p>
+    </div>
+
+    <div class="blind-spot">
+      <h4>Being Easily Manipulated</h4>
+      <p>Your vulnerability in relationships and difficulty saying "no" can make you susceptible to people who sense your desire to please.</p>
+    </div>
+
+    <div class="blind-spot">
+      <h4>Over-Reflecting Before Acting</h4>
+      <p>You may sit with ideas and plans longer than necessary, delaying projects while you process every possible outcome and implication.</p>
+    </div>
+
+    <div class="blind-spot">
+      <h4>Filtering Friends Through Rose-Tinted Glasses</h4>
+      <p>You tend to see only the positive attributes of the people close to you. Applying some objectivity and even healthy skepticism could help you become a better judge of character.</p>
+    </div>
+
+    <div class="blind-spot">
+      <h4>Neglecting Your Own Needs</h4>
+      <p>Your drive to help and please others means your own needs frequently end up at the bottom of the list. This is sustainable in short bursts — not as a lifestyle.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ CONSCIOUS GAP ════════════ -->
+<section class="section" id="conscious">
+  <div class="container">
+    <span class="section-label blue">The Inner Shift</span>
+    <h2>Conscious vs. Less Conscious</h2>
+    <p class="section-intro">Your "conscious" persona is how you choose to show up. Your "less conscious" is more instinctive — how you react when you're not actively managing your behaviour. The gap between them reveals a lot.</p>
+
+    <div class="card">
+      <h3>Side-by-Side Comparison</h3>
+      <div class="gap-legend" style="margin-top: 16px;">
+        <span><span class="swatch full"></span> Conscious (how you ACT)</span>
+        <span><span class="swatch faded"></span> Less Conscious (how you REACT)</span>
+      </div>
+
+      <div class="gap-row">
+        <span class="gap-label" style="color:var(--green)">Green</span>
+        <div class="gap-bar-container">
+          <div class="gap-bar conscious" style="width:82%; background: var(--green);"></div>
+          <div class="gap-bar less-conscious" style="width:48%; background: var(--green);"></div>
+        </div>
+        <span class="delta down">-34%</span>
+      </div>
+
+      <div class="gap-row">
+        <span class="gap-label" style="color:var(--red)">Red</span>
+        <div class="gap-bar-container">
+          <div class="gap-bar conscious" style="width:52%; background: var(--red);"></div>
+          <div class="gap-bar less-conscious" style="width:18%; background: var(--red);"></div>
+        </div>
+        <span class="delta down">-34%</span>
+      </div>
+
+      <div class="gap-row">
+        <span class="gap-label" style="color:var(--yellow)">Yellow</span>
+        <div class="gap-bar-container">
+          <div class="gap-bar conscious" style="width:47%; background: var(--yellow);"></div>
+          <div class="gap-bar less-conscious" style="width:58%; background: var(--yellow);"></div>
+        </div>
+        <span class="delta up">+11%</span>
+      </div>
+
+      <div class="gap-row">
+        <span class="gap-label" style="color:var(--blue)">Blue</span>
+        <div class="gap-bar-container">
+          <div class="gap-bar conscious" style="width:42%; background: var(--blue);"></div>
+          <div class="gap-bar less-conscious" style="width:53%; background: var(--blue);"></div>
+        </div>
+        <span class="delta up">+11%</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>What the Gaps Mean</h3>
+      <p style="margin-bottom: 12px;"><strong style="color: var(--green)">Green drops 34%:</strong> You consciously amplify your caring, empathic side at work. It's a deliberate choice to lead with values and people-focus. Your instinctive self still cares deeply, but not with the same intensity.</p>
+      <p style="margin-bottom: 12px;"><strong style="color: var(--red)">Red drops 34%:</strong> This is the biggest insight. You actively dial UP your decisive, action-oriented energy at work — but it's not natural at rest. Your instinctive self has very low Red (18%), meaning the assertiveness takes conscious effort.</p>
+      <p style="margin-bottom: 12px;"><strong style="color: var(--yellow)">Yellow rises 11%:</strong> Your instinctive self is actually more creative, social, and optimistic than you let on. Less consciously, Sunshine Yellow is your dominant energy.</p>
+      <p><strong style="color: var(--blue)">Blue rises 11%:</strong> Your analytical, reflective side is more present beneath the surface. Instinctively, you lean more toward thoughtfulness and precision than you show.</p>
+    </div>
+
+    <div class="card">
+      <h3>The Big Takeaway</h3>
+      <p>Your conscious self works hard to be the empathic, decisive helper. Your less conscious self is actually more of a creative, analytical thinker. The 26.2% preference flow between these two personas suggests moderate adaptation — you're stretching yourself, but not to breaking point.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ GROWTH ════════════ -->
+<section class="section" id="growth">
+  <div class="container">
+    <span class="section-label yellow">Level Up</span>
+    <h2>Growth Areas</h2>
+    <p class="section-intro">These aren't about fixing what's broken — they're about unlocking what's already there.</p>
+
+    <div class="growth-card">
+      <span class="growth-number">01</span>
+      <div>
+        <h4>Stand Up for Your Rights</h4>
+        <p>You have strong instincts and good judgment. Practice trusting them out loud — not just internally.</p>
+      </div>
+    </div>
+
+    <div class="growth-card">
+      <span class="growth-number">02</span>
+      <div>
+        <h4>Set Goals Outside Your Comfort Zone</h4>
+        <p>You're capable of more than you give yourself credit for. The "that'll do" threshold could be set higher.</p>
+      </div>
+    </div>
+
+    <div class="growth-card">
+      <span class="growth-number">03</span>
+      <div>
+        <h4>Question Motives (Sometimes)</h4>
+        <p>Your rose-tinted view of people is beautiful — and occasionally exploitable. A little healthy skepticism goes a long way.</p>
+      </div>
+    </div>
+
+    <div class="growth-card">
+      <span class="growth-number">04</span>
+      <div>
+        <h4>Simplify, Don't Complicate</h4>
+        <p>Your mind sees deep connections and possibilities. Sometimes the answer is simpler than you're making it.</p>
+      </div>
+    </div>
+
+    <div class="growth-card">
+      <span class="growth-number">05</span>
+      <div>
+        <h4>Embrace Structure (Selectively)</h4>
+        <p>You resist imposed order, but some structure genuinely helps. Knowing when to accept it is a form of strength.</p>
+      </div>
+    </div>
+
+    <div class="growth-card">
+      <span class="growth-number">06</span>
+      <div>
+        <h4>Be Less Sensitive to Others' Needs</h4>
+        <p>This sounds counterintuitive, but your constant awareness of everyone else's feelings can come at the cost of your own energy and focus.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ CHEAT SHEET ════════════ -->
+<section class="section" id="cheatsheet">
+  <div class="container">
+    <span class="section-label green">Quick Reference</span>
+    <h2>Working With Crystal</h2>
+    <p class="section-intro">A cheat sheet for anyone who wants to communicate and collaborate with you effectively.</p>
+
+    <div class="cheat-sheet">
+      <div class="cheat-do">
+        <h4>✅ Do This</h4>
+        <ul class="cheat-list">
+          <li>Give her time to talk things over with people who'll be affected</li>
+          <li>Share in and champion her ideas and visions</li>
+          <li>Mirror her calm, even-tempered nature</li>
+          <li>Respect her individuality — always</li>
+          <li>Help her feel at ease before diving into tough topics</li>
+          <li>Negotiate solutions slowly, calmly, quietly</li>
+          <li>Accept that "reflecting time" is essential for her best work</li>
+          <li>Give regular, informal check-ins on progress</li>
+          <li>Focus on people issues over detailed reports</li>
+        </ul>
+      </div>
+      <div class="cheat-dont">
+        <h4>❌ Don't Do This</h4>
+        <ul class="cheat-list">
+          <li>Assume her sunny disposition means she agrees with you</li>
+          <li>Be brusque or push unrealistic deadlines</li>
+          <li>Demand instant reactions or decisions</li>
+          <li>Demand change that ignores her personal values</li>
+          <li>Dismiss or ignore her suggestions</li>
+          <li>Question or challenge her personal values publicly</li>
+          <li>Make critical comparisons to other people</li>
+          <li>Focus on weaknesses or critique her in front of others</li>
+          <li>Impose excessive structure and formality</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ MANAGEMENT STYLE ════════════ -->
+<section class="section" id="management">
+  <div class="container">
+    <span class="section-label red">Leadership Mode</span>
+    <h2>Your Management Style</h2>
+    <p class="section-intro">Whether you're managing a team now or might in the future, here's how your natural tendencies play out in a leadership role.</p>
+
+    <div class="mgmt-card">
+      <span class="mgmt-icon">🏆</span>
+      <p>You measure your success by the success of your team and its individuals</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">🎓</span>
+      <p>You lead through encouragement and coaching rather than through control</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">👂</span>
+      <p>You listen to and evaluate everyone's contributions before deciding to act</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">🔓</span>
+      <p>You keep your deepest feelings private, even from your team</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">⏰</span>
+      <p>Time deadlines aren't your strong suit — you don't adhere rigidly to them</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">🔋</span>
+      <p>Without regular encouragement, your confidence drops — you need it too</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">⚖️</span>
+      <p>Disciplinary matters are genuinely hard for you — it conflicts with your nature</p>
+    </div>
+    <div class="mgmt-card">
+      <span class="mgmt-icon">🎯</span>
+      <p>You may delegate only simple tasks, underestimating what others can handle</p>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+      <h3>Your Ideal Environment</h3>
+      <p style="margin-bottom: 12px;">Low-key encouragement to pursue fresh challenges. A democratic culture with informal meetings. Plenty of personal contact and view-sharing. Few rigid rules around time-keeping or dress. Variety in tasks and full team support. Space for reflection and leisure.</p>
+      <p>Basically: a warm, flexible, human-centered workplace where people are trusted, not policed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ WORK LIFE ════════════ -->
+<section class="section" id="worklife">
+  <div class="container">
+    <span class="section-label blue">9 to 5 You</span>
+    <h2>How This Shows Up at Work</h2>
+    <p class="section-intro">Your colour profile shapes everything from how you handle meetings to how you deal with that one coworker who won't stop emailing in ALL CAPS.</p>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🏢</div>
+      <h3>Your Work Persona Is Intentional</h3>
+      <p>Your conscious profile shows you're actively dialing up both Green (empathy) and Red (action) at work — 34% more than your natural resting state for each. That means you're spending real energy to be both the person who cares about the team AND the person who pushes things forward. That effort is admirable, but it has a cost. If you've ever come home feeling drained even after a "good" day, this is probably why.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">🗣️</div>
+      <h3>Meetings & Collaboration</h3>
+      <p style="margin-bottom: 12px;">You're the person who makes sure the quiet voice in the room gets heard. You naturally seek consensus and democratic decisions, which makes you invaluable in collaborative settings.</p>
+      <p>The catch: you may check that everyone is comfortable before checking that the decision is actually made. You can also get distracted from listening attentively — people should gently confirm you're tracking if a meeting runs long.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--red-glow);">🔥</div>
+      <h3>Conflict at Work</h3>
+      <p style="margin-bottom: 12px;">You avoid it. Hard. You'd rather absorb discomfort than create it. If someone makes a mistake, you're more likely to sympathize with them and spread the blame around than to address it directly.</p>
+      <p>This peacekeeper instinct serves you well 80% of the time. But the other 20% — when accountability genuinely matters — your avoidance can let small issues become big ones. The profile's blunt advice: sometimes you need to say the hard thing, even when it feels terrible.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--blue-glow);">📋</div>
+      <h3>Deadlines & Structure</h3>
+      <p style="margin-bottom: 12px;">You don't naturally adhere to rigid timelines. You need processing time that others may not understand, and demanding an instant response from you will usually backfire.</p>
+      <p>This doesn't mean you're unreliable — you're described as conscientious, industrious, and dependable. It means your reliability runs on its own internal clock. Having a manager or system that helps you monitor agreed deadlines (rather than imposing them) works best.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🧭</div>
+      <h3>Monitoring Others' Work</h3>
+      <p>If your role requires you to oversee detailed work from other people, be aware: your profile flags this as something you'll find uninteresting, stressful, and exhausting. It drains your Green energy without feeding it. If you can, delegate the monitoring and focus on the mentoring instead — that's where your strengths actually live.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">💡</div>
+      <h3>Your Creative Edge at Work</h3>
+      <p>You're an ingenious, original problem solver. But your creative ideas can sometimes land ahead of where the group is, leading to misunderstandings. Try presenting ideas as options rather than conclusions — your profile says you actually prefer receiving information that way too, so extend the same approach outward.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ PERSONAL LIFE ════════════ -->
+<section class="section" id="personallife">
+  <div class="container">
+    <span class="section-label green">Off the Clock</span>
+    <h2>How This Shows Up at Home</h2>
+    <p class="section-intro">The colours don't clock out when you do. Your profile reveals patterns that ripple into friendships, family, partnerships, and how you recharge.</p>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🌙</div>
+      <h3>The Real You at Rest</h3>
+      <p>Your less conscious profile — the version that shows up when you're not "performing" — leads with Yellow (58%) and Blue (53%), not Green and Red. At home, you're naturally more creative, reflective, and analytical. You want to think, tinker, explore ideas, and follow your curiosity. The empathy and drive are still there, but they're not running the show the way they are at work.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--red-glow);">🫂</div>
+      <h3>In Close Relationships</h3>
+      <p style="margin-bottom: 12px;">You give a lot. Sometimes too much. You may suppress your own needs to please your partner or family, and you might feel indispensable to your partner even when that belief is creating pressure on both of you.</p>
+      <p style="margin-bottom: 12px;">You look for perfection in relationships, which sets up a subtle, ongoing sense that things could be better — even when they're good. This isn't dissatisfaction with the person; it's your internal idealism measuring reality against a standard that's hard to reach.</p>
+      <p>When conflict happens, you don't just feel it — you take it as a personal failure. Disagreements can hit you harder than they might hit someone with lower Green energy.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">👯</div>
+      <h3>Friendships</h3>
+      <p style="margin-bottom: 12px;">You value friends deeply and tend to see the best in them — sometimes filtering out red flags in the process. Your profile specifically calls this out: applying some objectivity and even healthy skepticism could help you become a better judge of others.</p>
+      <p>You can also become possessive of people you've invested emotional energy in. If a close friend starts pulling away or shifting their attention, it lands harder on you than it might on others.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--blue-glow);">🔋</div>
+      <h3>How You Recharge</h3>
+      <p style="margin-bottom: 12px;">You're equally at home in reflection or interaction — a rare quality. Some days you'll recharge through deep conversation and connection; other days you'll need solitude and quiet to process.</p>
+      <p>Your ideal environment includes space for plenty of holiday and leisure time. That's not a luxury preference — it's a real need. Without it, the effort of maintaining your work persona catches up with you.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--green-glow);">🏕️</div>
+      <h3>Personal Values Drive Everything</h3>
+      <p style="margin-bottom: 12px;">Your strong sense of personal values isn't just a work trait — it shapes every relationship and decision in your life. You may feel reserved around new people whose values seem different from yours. You'll resist anyone who tries to make you conform, whether that's a boss, a friend, or a family member.</p>
+      <p>This is both a shield and a wall. It protects your integrity, but it can also keep people at arm's length until they've earned enough trust to get past it.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--red-glow);">⚡</div>
+      <h3>The Paradox at Home</h3>
+      <p style="margin-bottom: 12px;">People who only know your gentle side at home may be startled when your Red energy surfaces. Remember — when you're committed to an objective or ideal that's being threatened, you can become rigid, inflexible, and much more demanding of yourself and others.</p>
+      <p>This is the "hidden fist" your profile describes. It doesn't come out often, but when it does, it's real. Giving the people close to you a heads-up about this side of you (and what triggers it) can prevent a lot of confusion.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon" style="background: var(--yellow-glow);">🪞</div>
+      <h3>The Biggest Personal Growth Edge</h3>
+      <p>You often overlook your own needs because you're focused on helping or pleasing others. Your profile calls this out multiple times across different sections — it's clearly a core pattern. Learning to identify what YOU need, and asking for it without guilt, is probably the single most impactful thing you can work on outside of work.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ FOOTER ════════════ -->
+<footer class="footer">
+  <p style="font-family: 'Unbounded', sans-serif; font-weight: 700; margin-bottom: 8px;">Crystal Decoded</p>
+  <p>Based on Insights Discovery Profile — Type 129: Creative Supporting Helper (Classic)</p>
+  <p>Assessment completed 30 November 2023</p>
+  <p style="margin-top: 16px; color: #444;">Built with data from the Insights Discovery® Personal Profile.<br>Insights Discovery® is a registered trademark of The Insights Group Ltd.</p>
+</footer>
+
+<!-- ════════════ SCRIPTS ════════════ -->
+<script>
+// Smooth scroll to section
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    const navHeight = document.querySelector('.section-nav').offsetHeight;
+    const y = el.getBoundingClientRect().top + window.scrollY - navHeight - 10;
+    window.scrollTo({ top: y, behavior: 'smooth' });
+  }
+}
+
+// Active nav button on scroll
+const sections = document.querySelectorAll('.section');
+const navBtns = document.querySelectorAll('.nav-btn');
+
+function updateNav() {
+  const navHeight = document.querySelector('.section-nav').offsetHeight;
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - navHeight - 60) {
+      current = s.id;
+    }
+  });
+  navBtns.forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.getAttribute('onclick')?.includes(current)) {
+      btn.classList.add('active');
+      // scroll nav button into view
+      btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  });
+}
+
+window.addEventListener('scroll', updateNav, { passive: true });
+
+// Fade-in on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.card, .trigger-card, .blind-spot, .growth-card, .mgmt-card, .stat-block, .creative-highlight').forEach(el => {
+  el.classList.add('fade-in');
+  observer.observe(el);
+});
+
+// Flip card tap support for mobile
+document.querySelectorAll('.flip-container').forEach(fc => {
+  fc.addEventListener('click', () => fc.classList.toggle('tapped'));
+});
+</script>
+
+</body>
+</html>
